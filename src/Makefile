@@ -1,0 +1,46 @@
+CC = gcc
+CFLAGS = -Wall -Wextra -O2
+BROTLI_ENCODER_LIB = -lbrotlienc
+BROTLI_DECODER_LIB = -lbrotlidec
+
+HELLO = hello
+HELLO_SRC = hello.c
+
+PACKER = packer
+PACKER_SRC = packer.c
+
+SELFEXTRACTOR = self_extractor_inmem
+SELFEXTRACTOR_SRC = selfextractor_inmem.c
+
+FLAG_COMPRESSED = flag_compressed
+
+MARKER = marker.txt
+MARKER_CONTENT = "==Ws in the chat=="
+
+PACKED = packed_flag
+
+.PHONY: all clean
+
+all: $(PACKED)
+
+$(HELLO): $(HELLO_SRC)
+	$(CC) -fPIE -pie $(HELLO_SRC) -o $(HELLO)
+
+$(PACKER): $(PACKER_SRC)
+	$(CC) $(CFLAGS) $(PACKER_SRC) -o $(PACKER) $(BROTLI_ENCODER_LIB)
+
+$(FLAG_COMPRESSED): $(HELLO) $(PACKER)
+	./$(PACKER) $(HELLO) $(FLAG_COMPRESSED)
+
+$(SELFEXTRACTOR): $(SELFEXTRACTOR_SRC)
+	$(CC) $(CFLAGS) $(SELFEXTRACTOR_SRC) -o $(SELFEXTRACTOR) $(BROTLI_DECODER_LIB)
+
+$(MARKER):
+	echo -n $(MARKER_CONTENT) > $(MARKER)
+
+$(PACKED): $(SELFEXTRACTOR) $(MARKER) $(FLAG_COMPRESSED)
+	cat $(SELFEXTRACTOR) $(MARKER) $(FLAG_COMPRESSED) > $(PACKED)
+	chmod +x $(PACKED)
+
+clean:
+	rm -f $(HELLO) $(PACKER) $(FLAG_COMPRESSED) $(SELFEXTRACTOR) $(MARKER) $(PACKED)
